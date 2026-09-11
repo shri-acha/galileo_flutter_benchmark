@@ -1,30 +1,39 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:galileo_flutter_benchmark/main.dart';
+import 'package:galileo_flutter_benchmark/models/moving_point.dart';
+import 'package:galileo_flutter_benchmark/services/fps_tracker.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  group('MovingPoint benchmark tests', () {
+    test('createTokyoPoints initializes 10 unique points', () {
+      final points = MovingPoint.createTokyoPoints();
+      expect(points.length, equals(10));
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+      final ids = points.map((p) => p.id).toSet();
+      expect(ids.length, equals(10));
+    });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    test('points update position over time', () {
+      final points = MovingPoint.createTokyoPoints();
+      final initialLat = points.first.currentLat;
+      final initialLng = points.first.currentLng;
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+      // Advance by 1.0 second
+      for (final p in points) {
+        p.update(1.0, 1.0);
+      }
+
+      expect(points.first.currentLat, isNot(equals(initialLat)));
+      expect(points.first.currentLng, isNot(equals(initialLng)));
+    });
+  });
+
+  group('BenchmarkMetrics tests', () {
+    test('records startup time correctly', () {
+      final metrics = BenchmarkMetrics();
+      expect(metrics.startupTimeMs, isNull);
+
+      metrics.setStartupTime(142);
+      expect(metrics.startupTimeMs, equals(142));
+    });
   });
 }

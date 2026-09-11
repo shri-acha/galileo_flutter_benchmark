@@ -1,121 +1,342 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:galileo_flutter/galileo_flutter.dart';
+import 'maps/flutter_map_split_view.dart';
+import 'maps/galileo_split_view.dart';
+import 'models/moving_point.dart';
+import 'services/fps_tracker.dart';
 
-void main() {
-  runApp(const MyApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  FlutterError.onError = (FlutterErrorDetails details) {
+    if (details.exception is AssertionError &&
+        details.exception.toString().contains('KeyDownEvent is dispatched')) {
+      return;
+    }
+    FlutterError.dumpErrorToConsole(details);
+  };
+
+  try {
+    await initGalileo();
+  } catch (e) {
+    debugPrint('initGalileo initialization notice: $e');
+  }
+
+  runApp(const BenchmarkApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class BenchmarkApp extends StatelessWidget {
+  const BenchmarkApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+      title: 'Galileo Flutter vs Flutter Map Benchmark',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData.dark().copyWith(
+        scaffoldBackgroundColor: const Color(0xFF090D16),
+        colorScheme: const ColorScheme.dark(
+          primary: Color(0xFF38BDF8),
+          secondary: Color(0xFF8B5CF6),
+          surface: Color(0xFF0F172A),
+        ),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const SplitBenchmarkScreen(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class SplitBenchmarkScreen extends StatefulWidget {
+  const SplitBenchmarkScreen({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<SplitBenchmarkScreen> createState() => _SplitBenchmarkScreenState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _SplitBenchmarkScreenState extends State<SplitBenchmarkScreen>
+    with SingleTickerProviderStateMixin {
+  late Ticker _ticker;
+  Duration? _lastElapsed;
 
-  void _incrementCounter() {
+  List<MovingPoint> _points = MovingPoint.createTokyoPoints();
+  bool _isPlaying = true;
+  double _speedMultiplier = 1.0;
+
+  final BenchmarkMetrics _galileoMetrics = BenchmarkMetrics();
+  final BenchmarkMetrics _flutterMapMetrics = BenchmarkMetrics();
+
+  int _benchmarkKeyIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = createTicker(_onTick);
+    _ticker.start();
+  }
+
+  void _onTick(Duration elapsed) {
+    if (!_isPlaying) {
+      _lastElapsed = elapsed;
+      return;
+    }
+
+    if (_lastElapsed != null) {
+      final delta = (elapsed - _lastElapsed!).inMicroseconds / 1000000.0;
+      if (delta > 0 && delta < 0.2) {
+        for (final point in _points) {
+          point.update(delta, _speedMultiplier);
+        }
+        setState(() {});
+      }
+    }
+    _lastElapsed = elapsed;
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
+
+  void _reloadBenchmark() {
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _benchmarkKeyIndex++;
+      _points = MovingPoint.createTokyoPoints();
+      _galileoMetrics.reset();
+      _flutterMapMetrics.reset();
+      _galileoMetrics.setStartupTime(0);
+      _flutterMapMetrics.setStartupTime(0);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
+    final gStartup = _galileoMetrics.startupTimeMs;
+    final fStartup = _flutterMapMetrics.startupTimeMs;
+
     return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
-          children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+      backgroundColor: const Color(0xFF090D16),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(60),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0F172A),
+            border: Border(
+              bottom: BorderSide(
+                color: Colors.white.withValues(alpha: 0.1),
+                width: 1,
+              ),
             ),
-          ],
+          ),
+          child: Row(
+            children: [
+              // Logo & Title
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF38BDF8).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.compare_arrows_rounded,
+                  color: Color(0xFF38BDF8),
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'MAP BENCHMARK: 10 MOVING POINTS',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  Text(
+                    'Galileo Flutter (Rust/WebGPU) vs Flutter Map (Dart/Canvas)',
+                    style: TextStyle(
+                      color: Colors.white60,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+
+              const Spacer(),
+
+              // Startup Comparison Banner in top app bar
+              if (gStartup != null || fStartup != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E293B),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.white12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.bolt, size: 16, color: Colors.amber),
+                      const SizedBox(width: 6),
+                      const Text(
+                        'Startup Time: ',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        'Galileo: ${gStartup != null && gStartup > 0 ? '$gStartup ms' : '...'}',
+                        style: const TextStyle(
+                          color: Color(0xFF38BDF8),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                      const Text(
+                        '  vs  ',
+                        style: TextStyle(color: Colors.white38, fontSize: 11),
+                      ),
+                      Text(
+                        'FlutterMap: ${fStartup != null && fStartup > 0 ? '$fStartup ms' : '...'}',
+                        style: const TextStyle(
+                          color: Color(0xFF8B5CF6),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              const SizedBox(width: 16),
+
+              // Speed selector
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E293B),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    _buildSpeedButton('0.5x', 0.5),
+                    _buildSpeedButton('1x', 1.0),
+                    _buildSpeedButton('2x', 2.0),
+                    _buildSpeedButton('4x', 4.0),
+                  ],
+                ),
+              ),
+
+              const SizedBox(width: 12),
+
+              // Play / Pause Toggle
+              IconButton.filled(
+                onPressed: () {
+                  setState(() {
+                    _isPlaying = !_isPlaying;
+                  });
+                },
+                icon: Icon(
+                  _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                  size: 20,
+                ),
+                style: IconButton.styleFrom(
+                  backgroundColor: _isPlaying
+                      ? const Color(0xFF1E293B)
+                      : const Color(0xFF10B981),
+                  foregroundColor: Colors.white,
+                ),
+                tooltip: _isPlaying ? 'Pause Movement' : 'Resume Movement',
+              ),
+
+              const SizedBox(width: 8),
+
+              // Re-run / Reload Benchmark
+              IconButton.filled(
+                onPressed: _reloadBenchmark,
+                icon: const Icon(Icons.refresh_rounded, size: 20),
+                style: IconButton.styleFrom(
+                  backgroundColor: const Color(0xFF1E293B),
+                  foregroundColor: const Color(0xFF38BDF8),
+                ),
+                tooltip: 'Re-run Benchmark (Remount & Re-measure Startup)',
+              ),
+            ],
+          ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+      body: Row(
+        key: ValueKey(_benchmarkKeyIndex),
+        children: [
+          // Left: Galileo Flutter Split View
+          Expanded(
+            child: ClipRect(
+              child: GalileoSplitView(
+                points: _points,
+                metrics: _galileoMetrics,
+              ),
+            ),
+          ),
+
+          // Central Divider Bar
+          Container(
+            width: 5,
+            color: const Color(0xFF0F172A),
+            child: Center(
+              child: Container(
+                width: 2,
+                color: Colors.white.withValues(alpha: 0.15),
+              ),
+            ),
+          ),
+
+          // Right: Flutter Map Split View
+          Expanded(
+            child: ClipRect(
+              child: FlutterMapSplitView(
+                points: _points,
+                metrics: _flutterMapMetrics,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSpeedButton(String label, double speed) {
+    final isSelected = _speedMultiplier == speed;
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _speedMultiplier = speed;
+        });
+      },
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF38BDF8) : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.black : Colors.white70,
+            fontSize: 11,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+          ),
+        ),
       ),
     );
   }
