@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:galileo_flutter/galileo_flutter.dart';
 import 'maps/flutter_map_split_view.dart';
+import 'maps/galileo_overlay_split_view.dart';
 import 'maps/galileo_split_view.dart';
 import 'models/moving_point.dart';
 import 'services/fps_tracker.dart';
@@ -61,7 +62,8 @@ class _SplitBenchmarkScreenState extends State<SplitBenchmarkScreen>
   bool _isPlaying = true;
   double _speedMultiplier = 1.0;
 
-  final BenchmarkMetrics _galileoMetrics = BenchmarkMetrics();
+  final BenchmarkMetrics _galileoNativeMetrics = BenchmarkMetrics();
+  final BenchmarkMetrics _galileoOverlayMetrics = BenchmarkMetrics();
   final BenchmarkMetrics _flutterMapMetrics = BenchmarkMetrics();
 
   int _benchmarkKeyIndex = 0;
@@ -101,16 +103,19 @@ class _SplitBenchmarkScreenState extends State<SplitBenchmarkScreen>
     setState(() {
       _benchmarkKeyIndex++;
       _points = MovingPoint.createTokyoPoints();
-      _galileoMetrics.reset();
+      _galileoNativeMetrics.reset();
+      _galileoOverlayMetrics.reset();
       _flutterMapMetrics.reset();
-      _galileoMetrics.setStartupTime(0);
+      _galileoNativeMetrics.setStartupTime(0);
+      _galileoOverlayMetrics.setStartupTime(0);
       _flutterMapMetrics.setStartupTime(0);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final gStartup = _galileoMetrics.startupTimeMs;
+    final gnStartup = _galileoNativeMetrics.startupTimeMs;
+    final goStartup = _galileoOverlayMetrics.startupTimeMs;
     final fStartup = _flutterMapMetrics.startupTimeMs;
 
     return Scaffold(
@@ -142,7 +147,7 @@ class _SplitBenchmarkScreenState extends State<SplitBenchmarkScreen>
               ),
               const SizedBox(width: 8),
               const Text(
-                'Galileo vs Flutter Map',
+                'Galileo (Native & Overlay) vs Flutter Map',
                 style: TextStyle(
                   color: Color(0xFF71717A),
                   fontSize: 12,
@@ -152,7 +157,7 @@ class _SplitBenchmarkScreenState extends State<SplitBenchmarkScreen>
               const Spacer(),
 
               // Startup comparison banner
-              if (gStartup != null || fStartup != null)
+              if (gnStartup != null || goStartup != null || fStartup != null)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
@@ -170,9 +175,22 @@ class _SplitBenchmarkScreenState extends State<SplitBenchmarkScreen>
                         ),
                       ),
                       Text(
-                        'Galileo ${gStartup != null && gStartup > 0 ? '$gStartup ms' : '...'}',
+                        'G-Native ${gnStartup != null && gnStartup > 0 ? '$gnStartup ms' : '...'}',
                         style: const TextStyle(
                           color: Color(0xFF38BDF8),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                      const Text(
+                        '  |  ',
+                        style: TextStyle(color: Color(0xFF52525B), fontSize: 11),
+                      ),
+                      Text(
+                        'G-Overlay ${goStartup != null && goStartup > 0 ? '$goStartup ms' : '...'}',
+                        style: const TextStyle(
+                          color: Color(0xFF06B6D4),
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                           fontFamily: 'monospace',
@@ -263,24 +281,48 @@ class _SplitBenchmarkScreenState extends State<SplitBenchmarkScreen>
       body: Row(
         key: ValueKey(_benchmarkKeyIndex),
         children: [
-          // Left: Galileo Flutter
+          // Left: Galileo side (split horizontally in the middle into Top & Bottom)
           Expanded(
-            child: ClipRect(
-              child: GalileoSplitView(
-                points: _points,
-                metrics: _galileoMetrics,
-              ),
+            child: Column(
+              children: [
+                // Top: Galileo Native Points (Rust Point features)
+                Expanded(
+                  child: ClipRect(
+                    child: GalileoSplitView(
+                      points: _points,
+                      metrics: _galileoNativeMetrics,
+                    ),
+                  ),
+                ),
+
+                // Horizontal Middle Divider
+                const Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: Color(0xFF27272A),
+                ),
+
+                // Bottom: Galileo OverlayWidget Points (Flutter Widgets via MapOverlayLayer)
+                Expanded(
+                  child: ClipRect(
+                    child: GalileoOverlaySplitView(
+                      points: _points,
+                      metrics: _galileoOverlayMetrics,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
 
-          // Clean 1px divider
+          // Clean 1px Vertical Divider
           const VerticalDivider(
             width: 1,
             thickness: 1,
             color: Color(0xFF27272A),
           ),
 
-          // Right: Flutter Map
+          // Right: Flutter Map (MarkerLayer)
           Expanded(
             child: ClipRect(
               child: FlutterMapSplitView(
