@@ -34,11 +34,10 @@ class BenchmarkApp extends StatelessWidget {
       title: 'Galileo Flutter vs Flutter Map Benchmark',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF090D16),
+        scaffoldBackgroundColor: const Color(0xFF09090B),
         colorScheme: const ColorScheme.dark(
           primary: Color(0xFF38BDF8),
-          secondary: Color(0xFF8B5CF6),
-          surface: Color(0xFF0F172A),
+          surface: Color(0xFF18181B),
         ),
       ),
       home: const SplitBenchmarkScreen(),
@@ -115,102 +114,80 @@ class _SplitBenchmarkScreenState extends State<SplitBenchmarkScreen>
     final fStartup = _flutterMapMetrics.startupTimeMs;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF090D16),
+      backgroundColor: const Color(0xFF09090B),
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(60),
+        preferredSize: const Size.fromHeight(52),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          decoration: BoxDecoration(
-            color: const Color(0xFF0F172A),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: const BoxDecoration(
+            color: Color(0xFF18181B),
             border: Border(
               bottom: BorderSide(
-                color: Colors.white.withValues(alpha: 0.1),
+                color: Color(0xFF27272A),
                 width: 1,
               ),
             ),
           ),
           child: Row(
             children: [
-              // Logo & Title
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF38BDF8).withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.compare_arrows_rounded,
-                  color: Color(0xFF38BDF8),
-                  size: 22,
+              // Minimal title
+              const Text(
+                'BENCHMARK: 10 MOVING POINTS',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.3,
                 ),
               ),
-              const SizedBox(width: 12),
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'MAP BENCHMARK: 10 MOVING POINTS',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  Text(
-                    'Galileo Flutter (Rust/WebGPU) vs Flutter Map (Dart/Canvas)',
-                    style: TextStyle(
-                      color: Colors.white60,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
+              const SizedBox(width: 8),
+              const Text(
+                'Galileo vs Flutter Map',
+                style: TextStyle(
+                  color: Color(0xFF71717A),
+                  fontSize: 12,
+                ),
               ),
 
               const Spacer(),
 
-              // Startup Comparison Banner in top app bar
+              // Startup comparison banner
               if (gStartup != null || fStartup != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E293B),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.white12),
+                    color: const Color(0xFF27272A),
+                    borderRadius: BorderRadius.circular(4),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.bolt, size: 16, color: Colors.amber),
-                      const SizedBox(width: 6),
                       const Text(
-                        'Startup Time: ',
+                        'Startup: ',
                         style: TextStyle(
-                          color: Colors.white70,
+                          color: Color(0xFFA1A1AA),
                           fontSize: 11,
-                          fontWeight: FontWeight.w600,
                         ),
                       ),
                       Text(
-                        'Galileo: ${gStartup != null && gStartup > 0 ? '$gStartup ms' : '...'}',
+                        'Galileo ${gStartup != null && gStartup > 0 ? '$gStartup ms' : '...'}',
                         style: const TextStyle(
                           color: Color(0xFF38BDF8),
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
                           fontFamily: 'monospace',
                         ),
                       ),
                       const Text(
-                        '  vs  ',
-                        style: TextStyle(color: Colors.white38, fontSize: 11),
+                        '  |  ',
+                        style: TextStyle(color: Color(0xFF52525B), fontSize: 11),
                       ),
                       Text(
-                        'FlutterMap: ${fStartup != null && fStartup > 0 ? '$fStartup ms' : '...'}',
+                        'FlutterMap ${fStartup != null && fStartup > 0 ? '$fStartup ms' : '...'}',
                         style: const TextStyle(
-                          color: Color(0xFF8B5CF6),
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFA78BFA),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
                           fontFamily: 'monospace',
                         ),
                       ),
@@ -218,14 +195,13 @@ class _SplitBenchmarkScreenState extends State<SplitBenchmarkScreen>
                   ),
                 ),
 
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
 
               // Speed selector
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B),
-                  borderRadius: BorderRadius.circular(8),
+                  color: const Color(0xFF27272A),
+                  borderRadius: BorderRadius.circular(4),
                 ),
                 child: Row(
                   children: [
@@ -237,39 +213,48 @@ class _SplitBenchmarkScreenState extends State<SplitBenchmarkScreen>
                 ),
               ),
 
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
 
               // Play / Pause Toggle
-              IconButton.filled(
-                onPressed: () {
+              InkWell(
+                onTap: () {
                   setState(() {
                     _isPlaying = !_isPlaying;
                   });
                 },
-                icon: Icon(
-                  _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                  size: 20,
+                borderRadius: BorderRadius.circular(4),
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF27272A),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Icon(
+                    _isPlaying ? Icons.pause : Icons.play_arrow,
+                    size: 16,
+                    color: Colors.white,
+                  ),
                 ),
-                style: IconButton.styleFrom(
-                  backgroundColor: _isPlaying
-                      ? const Color(0xFF1E293B)
-                      : const Color(0xFF10B981),
-                  foregroundColor: Colors.white,
-                ),
-                tooltip: _isPlaying ? 'Pause Movement' : 'Resume Movement',
               ),
 
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
 
-              // Re-run / Reload Benchmark
-              IconButton.filled(
-                onPressed: _reloadBenchmark,
-                icon: const Icon(Icons.refresh_rounded, size: 20),
-                style: IconButton.styleFrom(
-                  backgroundColor: const Color(0xFF1E293B),
-                  foregroundColor: const Color(0xFF38BDF8),
+              // Reload Button
+              InkWell(
+                onTap: _reloadBenchmark,
+                borderRadius: BorderRadius.circular(4),
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF27272A),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Icon(
+                    Icons.refresh,
+                    size: 16,
+                    color: Colors.white,
+                  ),
                 ),
-                tooltip: 'Re-run Benchmark (Remount & Re-measure Startup)',
               ),
             ],
           ),
@@ -278,7 +263,7 @@ class _SplitBenchmarkScreenState extends State<SplitBenchmarkScreen>
       body: Row(
         key: ValueKey(_benchmarkKeyIndex),
         children: [
-          // Left: Galileo Flutter Split View
+          // Left: Galileo Flutter
           Expanded(
             child: ClipRect(
               child: GalileoSplitView(
@@ -288,19 +273,14 @@ class _SplitBenchmarkScreenState extends State<SplitBenchmarkScreen>
             ),
           ),
 
-          // Central Divider Bar
-          Container(
-            width: 5,
-            color: const Color(0xFF0F172A),
-            child: Center(
-              child: Container(
-                width: 2,
-                color: Colors.white.withValues(alpha: 0.15),
-              ),
-            ),
+          // Clean 1px divider
+          const VerticalDivider(
+            width: 1,
+            thickness: 1,
+            color: Color(0xFF27272A),
           ),
 
-          // Right: Flutter Map Split View
+          // Right: Flutter Map
           Expanded(
             child: ClipRect(
               child: FlutterMapSplitView(
@@ -322,17 +302,17 @@ class _SplitBenchmarkScreenState extends State<SplitBenchmarkScreen>
           _speedMultiplier = speed;
         });
       },
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: BorderRadius.circular(4),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF38BDF8) : Colors.transparent,
-          borderRadius: BorderRadius.circular(6),
+          color: isSelected ? const Color(0xFF3F3F46) : Colors.transparent,
+          borderRadius: BorderRadius.circular(4),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.black : Colors.white70,
+            color: isSelected ? Colors.white : const Color(0xFFA1A1AA),
             fontSize: 11,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
           ),

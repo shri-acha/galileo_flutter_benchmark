@@ -100,15 +100,14 @@ class _FlutterMapSplitViewState extends State<FlutterMapSplitView> {
           ),
         ),
 
-        // Top Telemetry Header
+        // Minimal Top Telemetry Header
         Positioned(
-          top: 14,
-          left: 14,
-          right: 14,
+          top: 12,
+          left: 12,
           child: BenchmarkHeader(
             title: 'Flutter Map',
-            subtitle: 'Dart / Canvas • Widget Tree Layers',
-            accentColor: const Color(0xFF8B5CF6), // Purple
+            subtitle: 'Dart • Canvas',
+            accentColor: const Color(0xFFA78BFA),
             metrics: widget.metrics,
             activePointsCount: widget.points.length,
           ),
