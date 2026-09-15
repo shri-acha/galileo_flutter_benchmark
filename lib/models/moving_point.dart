@@ -1,10 +1,10 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 /// Represents a point moving along an orbital or wandering trajectory.
 class MovingPoint {
   final int id;
-  final String name;
   final Color color;
   final double centerLat;
   final double centerLng;
@@ -20,7 +20,6 @@ class MovingPoint {
 
   MovingPoint({
     required this.id,
-    required this.name,
     required this.color,
     required this.centerLat,
     required this.centerLng,
@@ -29,18 +28,22 @@ class MovingPoint {
     required this.baseSpeed,
     required this.initialAngle,
     this.speedMultiplier = 1.0,
-  })  : currentLat = centerLat + radiusLat * math.sin(initialAngle),
-        currentLng = centerLng + radiusLng * math.cos(initialAngle),
-        currentAngle = initialAngle;
+  }) : currentLat = centerLat + radiusLat * math.sin(initialAngle),
+       currentLng = centerLng + radiusLng * math.cos(initialAngle),
+       currentAngle = initialAngle;
+
+  String get name => 'Point #$id';
 
   /// Updates the position based on the elapsed delta time.
   void update(double deltaSeconds, double globalSpeedMultiplier) {
-    currentAngle += baseSpeed * speedMultiplier * globalSpeedMultiplier * deltaSeconds;
+    currentAngle +=
+        baseSpeed * speedMultiplier * globalSpeedMultiplier * deltaSeconds;
     if (currentAngle > 2 * math.pi) {
       currentAngle -= 2 * math.pi;
     }
 
-    final latOffset = radiusLat * math.sin(currentAngle * (1.0 + (id % 3) * 0.2));
+    final latOffset =
+        radiusLat * math.sin(currentAngle * (1.0 + (id % 3) * 0.2));
     final lngOffset = radiusLng * math.cos(currentAngle);
 
     currentLat = centerLat + latOffset;
@@ -51,6 +54,7 @@ class MovingPoint {
   static List<MovingPoint> createTokyoPoints({
     double centerLat = 35.6812,
     double centerLng = 139.7671,
+    int count = 10,
   }) {
     const colors = [
       Color(0xFF38BDF8),
@@ -66,15 +70,14 @@ class MovingPoint {
     ];
 
     final points = <MovingPoint>[];
-    for (int i = 0; i < 10; i++) {
-      final angle = (i / 10.0) * 2 * math.pi;
+    for (int i = 0; i < count; i++) {
+      final angle = (i / count) * 2 * math.pi;
       final radiusFactor = 0.015 + (i % 4) * 0.012;
       final speedFactor = 0.8 + ((i * 3) % 5) * 0.25;
 
       points.add(
         MovingPoint(
           id: i + 1,
-          name: 'Point #${i + 1}',
           color: colors[i % colors.length],
           centerLat: centerLat + ((i % 3) - 1) * 0.01,
           centerLng: centerLng + (((i ~/ 3) % 3) - 1) * 0.01,

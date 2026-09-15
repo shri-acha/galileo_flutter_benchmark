@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+
 import '../models/moving_point.dart';
 import '../services/fps_tracker.dart';
 import '../widgets/benchmark_header.dart';
@@ -11,11 +12,13 @@ import '../widgets/point_tooltip_marker.dart';
 class FlutterMapSplitView extends StatefulWidget {
   final List<MovingPoint> points;
   final BenchmarkMetrics metrics;
+  final VoidCallback? onReady;
 
   const FlutterMapSplitView({
     super.key,
     required this.points,
     required this.metrics,
+    this.onReady,
   });
 
   @override
@@ -57,6 +60,7 @@ class _FlutterMapSplitViewState extends State<FlutterMapSplitView> {
           widget.metrics.setStartupTime(_startupStopwatch.elapsedMilliseconds);
         });
       }
+      widget.onReady?.call();
     }
   }
 
@@ -87,12 +91,10 @@ class _FlutterMapSplitViewState extends State<FlutterMapSplitView> {
                   for (final point in widget.points)
                     Marker(
                       point: LatLng(point.currentLat, point.currentLng),
-                      width: 48,
-                      height: 48,
+                      width: 16,
+                      height: 16,
                       alignment: Alignment.topCenter,
-                      child: PointTooltipMarker(
-                        point: point,
-                      ),
+                      child: PointDotMarker(point: point),
                     ),
                 ],
               ),

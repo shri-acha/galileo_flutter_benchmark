@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:galileo_flutter/galileo_flutter.dart';
+
 import '../models/moving_point.dart';
 import '../services/fps_tracker.dart';
 import '../widgets/benchmark_header.dart';
@@ -10,15 +11,18 @@ import '../widgets/point_tooltip_marker.dart';
 class GalileoOverlaySplitView extends StatefulWidget {
   final List<MovingPoint> points;
   final BenchmarkMetrics metrics;
+  final VoidCallback? onReady;
 
   const GalileoOverlaySplitView({
     super.key,
     required this.points,
     required this.metrics,
+    this.onReady,
   });
 
   @override
-  State<GalileoOverlaySplitView> createState() => _GalileoOverlaySplitViewState();
+  State<GalileoOverlaySplitView> createState() =>
+      _GalileoOverlaySplitViewState();
 }
 
 class _GalileoOverlaySplitViewState extends State<GalileoOverlaySplitView> {
@@ -54,35 +58,38 @@ class _GalileoOverlaySplitViewState extends State<GalileoOverlaySplitView> {
     _startupStopwatch = Stopwatch()..start();
     _startupMeasured = false;
 
-    _controllerFuture = GalileoMapController.create(
-      size: _kInitialSize,
-      config: _kMapConfig,
-      layers: [LayerConfig.osm()],
-    ).then((result) {
-      final (ctrl, err) = result;
-      if (mounted && ctrl != null && err == null) {
-        setState(() {
-          _controller = ctrl;
-        });
+    _controllerFuture =
+        GalileoMapController.create(
+          size: _kInitialSize,
+          config: _kMapConfig,
+          layers: [LayerConfig.osm()],
+        ).then((result) {
+          final (ctrl, err) = result;
+          if (mounted && ctrl != null && err == null) {
+            setState(() {
+              _controller = ctrl;
+            });
 
-        void checkReady(GalileoMapState state) {
-          if (state == GalileoMapState.ready && !_startupMeasured) {
-            _startupMeasured = true;
-            _startupStopwatch?.stop();
-            final elapsed = _startupStopwatch?.elapsedMilliseconds ?? 0;
-            if (mounted) {
-              setState(() {
-                widget.metrics.setStartupTime(elapsed);
-              });
+            void checkReady(GalileoMapState state) {
+              if (state == GalileoMapState.ready && !_startupMeasured) {
+                _startupMeasured = true;
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!mounted) return;
+                  _startupStopwatch?.stop();
+                  final elapsed = _startupStopwatch?.elapsedMilliseconds ?? 0;
+                  setState(() {
+                    widget.metrics.setStartupTime(elapsed);
+                  });
+                  widget.onReady?.call();
+                });
+              }
             }
-          }
-        }
 
-        checkReady(ctrl.currentState);
-        ctrl.stateStream.listen(checkReady);
-      }
-      return result;
-    });
+            checkReady(ctrl.currentState);
+            ctrl.stateStream.listen(checkReady);
+          }
+          return result;
+        });
   }
 
   @override
@@ -116,7 +123,10 @@ class _GalileoOverlaySplitViewState extends State<GalileoOverlaySplitView> {
                             SizedBox(height: 12),
                             Text(
                               'Initializing Galileo (OverlayWidget)...',
-                              style: TextStyle(color: Colors.white70, fontSize: 13),
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 13,
+                              ),
                             ),
                           ],
                         ),
@@ -141,7 +151,7 @@ class _GalileoOverlaySplitViewState extends State<GalileoOverlaySplitView> {
                     return Container(color: const Color(0xFF0F172A));
                   }
 
-                  // Build OverlayWidget list for the 10 moving points
+                  // Build OverlayWidget list for the benchmark points.
                   final overlays = [
                     for (final point in widget.points)
                       OverlayWidget.geo(
@@ -150,9 +160,9 @@ class _GalileoOverlaySplitViewState extends State<GalileoOverlaySplitView> {
                           latitude: point.currentLat,
                           longitude: point.currentLng,
                         ),
-                        width: 48,
-                        height: 48,
-                        child: PointTooltipMarker(point: point),
+                        width: 16,
+                        height: 16,
+                        child: PointDotMarker(point: point),
                       ),
                   ];
 

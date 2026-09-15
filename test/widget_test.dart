@@ -12,6 +12,12 @@ void main() {
       expect(ids.length, equals(10));
     });
 
+    test('createTokyoPoints supports arbitrary benchmark sizes', () {
+      final points = MovingPoint.createTokyoPoints(count: 1000);
+      expect(points.length, equals(1000));
+      expect(points.map((p) => p.id).toSet().length, equals(1000));
+    });
+
     test('points update position over time', () {
       final points = MovingPoint.createTokyoPoints();
       final initialLat = points.first.currentLat;
