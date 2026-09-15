@@ -34,6 +34,8 @@ Output:
 logs/benchmark_graphs.png
 ```
 
+![Benchmark graphs](logs/benchmark_graphs.png)
+
 ## Reading the CSV
 
 `0` in `startup_ms`, `cpu_percent`, `gpu_percent`, `gpu_mem_mb`, `rss_mb`,
